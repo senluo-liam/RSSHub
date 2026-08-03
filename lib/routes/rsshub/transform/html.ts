@@ -76,6 +76,10 @@ Parsing of \`routeParams\` parameter:
         const $ = load(decoder.decode(response.data));
         const rssTitle = routeParams.get('title') || $('title').text();
         const item = routeParams.get('item') || 'html';
+        const allowEmpty = ['true', '1', 'yes'].includes(
+            (routeParams.get('allowEmpty') || '').toLowerCase()
+        );
+        
         let items: DataItem[] = $(item)
             .toArray()
             .slice(0, 20)
@@ -154,6 +158,7 @@ Parsing of \`routeParams\` parameter:
             link: url,
             description: `Proxy ${url}`,
             item: items,
+            allowEmpty,
         };
     },
 };
