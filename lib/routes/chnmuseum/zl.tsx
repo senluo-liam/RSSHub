@@ -10,18 +10,18 @@ import { parseDate } from '@/utils/parse-date';
 
 import { namespace } from './namespace';
 
-const titleTagMap: Record<string, string> = {
-    zhanlanyugao: '正在展出',
-    jbcl: '基本陈列',
-    ztcl: '专题展览',
-    lszl: '临时展览',
-    'lszl/lswh': '临时展览 - 历史文化',
-    'lszl/gjjl': '临时展览 - 国际交流',
-    'lszl/zdzt': '临时展览 - 重大主题',
-    'lszl/yscx': '临时展览 - 艺术创新',
-    gjzl: '国家展览',
-    gbxz: '国博巡展',
-};
+const titleTagMap = new Map<string, string>([
+    ['zhanlanyugao', '正在展出'],
+    ['jbcl', '基本陈列'],
+    ['ztcl', '专题展览'],
+    ['lszl', '临时展览'],
+    ['lszl/lswh', '临时展览 - 历史文化'],
+    ['lszl/gjjl', '临时展览 - 国际交流'],
+    ['lszl/zdzt', '临时展览 - 重大主题'],
+    ['lszl/yscx', '临时展览 - 艺术创新'],
+    ['gjzl', '国家展览'],
+    ['gbxz', '国博巡展'],
+]);
 
 // Formatting Function: Returns YYYY-MM-DD when there are 3 valid numeric segments that are formatted by parseExhibitionDate; otherwise, returns undefined.
 const formatExhibitionDate = (dateStr: string | undefined): string | undefined => {
@@ -86,7 +86,7 @@ const resolveRouteConfig = (type: string | undefined, subtype: string | undefine
     return {
         cleanType,
         url,
-        titleTag: titleTagMap[cleanType] || '展览',
+        titleTag: titleTagMap.get(cleanType) || '展览',
     };
 };
 
@@ -113,7 +113,7 @@ const fetchTargetElements = async (cleanType: string, subtype: string | undefine
             const $item = $(el).closest('li');
             if ($item.length > 0) {
                 const rawLink = $(el).attr('href') || '';
-                const rawZtzl = $(el).attr('ztzlurl')?.trim() || ''; // some exhibition links have a separate detailed page, use ztzlurl to get the detailed exhibition link if available
+                const rawZtzl = $(el).attr('ztzlurl') || ''; // some exhibition links have a separate detailed page, use ztzlurl to get the detailed exhibition link if available
 
                 // Use exhibitionLink to remove the repeat ones
                 const itemLink = buildItemLink(rawLink, contextUrl, baseUrl);
@@ -128,7 +128,10 @@ const fetchTargetElements = async (cleanType: string, subtype: string | undefine
     };
 
     if (cleanType === 'lszl') {
-        const subKeys = Object.keys(titleTagMap).filter((key) => key.startsWith('lszl/'));
+        const subKeys = titleTagMap
+            .keys()
+            .filter((key) => key.startsWith('lszl/'))
+            .toArray();
         const pagesData = await Promise.all(
             subKeys.map(async (subKey) => {
                 const targetSubUrl = `${baseUrl}/zl/${subKey}/`;
@@ -179,9 +182,9 @@ export const route: Route = {
                     const rawLink = aTag.attr('href') || '';
                     const itemLink = buildItemLink(rawLink, contextUrl, baseUrl);
 
-                    return cache.tryGet(itemLink, async () => {
+                    return cache.tryGet(itemLink, async (): Promise<DataItem> => {
                         // for detailed exhibition page if available, different from base exhibition page.
-                        const rawZtzl = aTag.attr('ztzlurl')?.trim() || '';
+                        const rawZtzl = aTag.attr('ztzlurl') || '';
                         const exhibitionLink = buildExhibitionLink(rawZtzl, itemLink, baseUrl);
 
                         // title may not have full display on the page, use the img alt information instead
@@ -198,8 +201,7 @@ export const route: Route = {
                                 .find((box) => box.find('p').first().text().includes(keyword))
                                 ?.find('p')
                                 .last()
-                                .text()
-                                .trim() ?? '';
+                                .text() ?? '';
 
                         const location = findValue('地点');
                         let fullDuration = findValue('展期');
@@ -270,8 +272,8 @@ export const route: Route = {
                                 startDate,
                                 endDate,
                             },
-                        } as DataItem;
-                    }) as Promise<DataItem>;
+                        };
+                    });
                 })
             )
         ).filter((i): i is DataItem => i !== null);
