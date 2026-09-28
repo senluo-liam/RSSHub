@@ -81,8 +81,8 @@ Parsing of \`routeParams\` parameter:
         );
         
         let items: DataItem[] = $(item)
-            .toArray()
             .slice(0, 20)
+            .toArray()
             .map((item) => {
                 try {
                     const $item = $(item);
